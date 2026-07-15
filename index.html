@@ -6,7 +6,9 @@
     <title>เกมจับคำเข้าตะกร้าสระภาษาไทย - AR Learning Game</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts: Sriracha & Prompt สำหรับความน่ารักอ่านง่ายของเด็ก ป.1 -->
+    <!-- Google Fonts: Preconnect & Sriracha & Prompt สำหรับความน่ารักอ่านง่ายของเด็ก ป.1 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;800&family=Sriracha&display=swap"
       rel="stylesheet"
@@ -24,13 +26,20 @@
 
     <style>
       body {
-        font-family: "Prompt", sans-serif;
+        font-family: "Prompt", "Noto Sans Thai", sans-serif;
         background-color: #f0fdf4;
         overflow: hidden;
         user-select: none;
+        height: 100vh;
+        height: 100dvh;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
       }
       .font-handwriting {
-        font-family: "Sriracha", cursive;
+        font-family: "Sriracha", "Prompt", "Noto Sans Thai", sans-serif;
+        text-rendering: optimizeLegibility;
+        font-variant-ligatures: normal;
       }
       /* แอนิเมชันสั่นเมื่อตอบผิด */
       @keyframes shake {
@@ -67,17 +76,17 @@
       }
     </style>
   </head>
-  <body class="relative w-screen h-screen flex items-center justify-center">
+  <body class="relative w-screen h-screen h-[100dvh] flex items-center justify-center overflow-hidden">
     <!-- ==================== BACKGROUND VIDEO (AR CAMERA) ==================== -->
     <div
       class="absolute inset-0 w-full h-full z-0 overflow-hidden bg-gradient-to-tr from-sky-200 via-amber-100 to-emerald-200"
     >
-      <!-- กล้องเว็บแคม (ซ่อนวิดีโอตัวจริง แต่ดึงข้อมูลไปวาดลง Canvas) -->
-      <video id="webcam" class="hidden" autoplay playsinline></video>
-      <!-- Canvas แสดงผล AR และลายเส้นการวิเคราะห์ของ MediaPipe -->
+      <!-- กล้องเว็บแคม แสดงผลแบบ Hardware-accelerated (ลื่นกว่าการวาดลง Canvas ด้วย JS มาก) -->
+      <video id="webcam" class="absolute inset-0 w-full h-full object-cover scale-x-[-1] opacity-55 pointer-events-none" autoplay playsinline muted></video>
+      <!-- Canvas แสดงโครงร่างกระดูกมือของ MediaPipe เท่านั้น (พื้นหลังโปร่งใส) -->
       <canvas
         id="ar-canvas"
-        class="absolute inset-0 w-full h-full object-cover scale-x-[-1] opacity-40"
+        class="absolute inset-0 w-full h-full object-cover scale-x-[-1] pointer-events-none"
       ></canvas>
     </div>
 
@@ -92,65 +101,73 @@
     <!-- 1. หน้าจอเริ่มเกม (Start Screen) -->
     <div
       id="start-screen"
-      class="z-10 max-w-lg w-11/12 p-8 bg-white/80 backdrop-blur-md rounded-3xl border-4 border-amber-400 shadow-2xl text-center flex flex-col items-center"
+      class="z-10 max-w-lg w-11/12 max-h-[90dvh] overflow-y-auto p-6 sm:p-8 bg-white/40 backdrop-blur-lg rounded-3xl border-4 border-amber-400/65 shadow-2xl text-center flex flex-col items-center"
     >
       <div
-        class="text-7xl mb-4 transform hover:scale-115 transition-transform duration-300"
+        class="text-5xl sm:text-7xl mb-2 sm:mb-4 transform hover:scale-110 transition-transform duration-300"
       >
         🧺✨
       </div>
       <h1
-        class="text-4xl md:text-5xl font-extrabold text-amber-600 mb-2 font-handwriting drop-shadow-md"
+        class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-amber-600 mb-2 font-handwriting drop-shadow-md"
       >
         จับคำเข้าตะกร้า
       </h1>
-      <p class="text-xl md:text-2xl text-slate-700 font-semibold mb-6">
+      <p class="text-lg sm:text-xl md:text-2xl text-slate-700 font-semibold mb-4 sm:mb-6">
         เรียนรู้สะกดคำสระ เอือ & เอีย
       </p>
-      <button
-        id="btn-to-instructions"
-        class="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white text-2xl font-bold rounded-full shadow-lg border-b-4 border-emerald-700 hover:border-emerald-800 transform active:scale-95 transition-all"
-      >
-        เข้าสู่เกม 🚀
-      </button>
+      <div class="flex flex-col sm:flex-row gap-3 w-full justify-center items-center">
+        <button
+          id="btn-to-instructions"
+          class="w-full sm:w-auto px-6 py-3 sm:px-8 sm:py-4 bg-emerald-500 hover:bg-emerald-600 text-white text-xl sm:text-2xl font-bold rounded-full shadow-lg border-b-4 border-emerald-700 hover:border-emerald-800 transform active:scale-95 transition-all"
+        >
+          เข้าสู่เกม 🚀
+        </button>
+        <button
+          id="btn-fullscreen-start"
+          class="w-full sm:w-auto px-5 py-3 sm:py-4 bg-white hover:bg-slate-50 text-slate-700 text-lg sm:text-xl font-bold rounded-full shadow-md border border-slate-300 hover:border-slate-400 transform active:scale-95 transition-all flex items-center justify-center gap-2"
+          title="เต็มจอ"
+        >
+          <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path class="fs-icon-path" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4h4M16 4h4v4M4 16v4h4M16 20h4v-4"></path>
+          </svg>
+          <span>เต็มจอ</span>
+        </button>
+      </div>
     </div>
 
     <!-- 2. หน้าจอแนะนำการเล่น (Instructions Screen) -->
     <div
       id="instruction-screen"
-      class="hidden z-10 max-w-2xl w-11/12 p-8 bg-white/90 backdrop-blur-md rounded-3xl border-4 border-sky-400 shadow-2xl"
+      class="hidden z-10 max-w-2xl w-11/12 max-h-[90dvh] overflow-y-auto p-6 sm:p-8 bg-white/50 backdrop-blur-lg rounded-3xl border-4 border-sky-400/65 shadow-2xl"
     >
-      <h2 class="text-3xl font-extrabold text-sky-600 text-center mb-6">
+      <h2 class="text-2xl sm:text-3xl font-extrabold text-sky-600 text-center mb-4 sm:mb-6">
         💡 วิธีเล่นสุดสนุก!
       </h2>
 
-      <div class="space-y-4 text-slate-700 text-lg mb-8">
-        <div class="flex items-center gap-4">
-          <span class="text-3xl">🖐️</span>
+      <div class="space-y-3 sm:space-y-4 text-slate-700 text-base sm:text-lg mb-6 sm:mb-8">
+        <div class="flex items-center gap-3 sm:gap-4">
+          <span class="text-2xl sm:text-3xl">🖐️</span>
           <p>
-            <strong>ใช้มือหน้ากล้อง:</strong> แบมือเพื่อเคลื่อนที่ตัวชี้สีฟ้า
-            (Cursor)
+            <strong>ใช้มือหน้ากล้อง:</strong> แบมือเพื่อเคลื่อนที่ตัวชี้สีฟ้า (Cursor)
           </p>
         </div>
-        <div class="flex items-center gap-4">
-          <span class="text-3xl">👌</span>
+        <div class="flex items-center gap-3 sm:gap-4">
+          <span class="text-2xl sm:text-3xl">👌</span>
           <p>
-            <strong>จีบนิ้วเพื่อคีบ:</strong>
-            จีบนิ้วชี้กับนิ้วโป้งเข้าหากันเพื่อหยิบการ์ดคำศัพท์
+            <strong>จีบนิ้วเพื่อคีบ:</strong> จีบนิ้วชี้กับนิ้วโป้งเข้าหากันเพื่อหยิบการ์ดคำศัพท์
           </p>
         </div>
-        <div class="flex items-center gap-4">
-          <span class="text-3xl">🧺</span>
+        <div class="flex items-center gap-3 sm:gap-4">
+          <span class="text-2xl sm:text-3xl">🧺</span>
           <p>
-            <strong>ลากไปใส่ตะกร้า:</strong>
-            ย้ายมือลากการ์ดคำไปใส่ตะกร้าสระที่ถูกต้อง แล้วกางนิ้วเพื่อปล่อย
+            <strong>ลากไปใส่ตะกร้า:</strong> ย้ายมือลากการ์ดคำไปใส่ตะกร้าสระที่ถูกต้อง แล้วกางนิ้วเพื่อปล่อย
           </p>
         </div>
-        <div class="flex items-center gap-4 text-amber-600">
-          <span class="text-3xl">🖱️</span>
+        <div class="flex items-center gap-3 sm:gap-4 text-amber-600">
+          <span class="text-2xl sm:text-3xl">🖱️</span>
           <p>
-            <strong>เล่นไม่ใช้กล้องได้:</strong> หากไม่มีกล้อง
-            ใช้เมาส์ลากหรือใช้นิ้วถูหน้าจอได้เลยครับ!
+            <strong>เล่นไม่ใช้กล้องได้:</strong> หากไม่มีกล้อง ใช้เมาส์ลากหรือใช้นิ้วถูหน้าจอได้เลยครับ!
           </p>
         </div>
       </div>
@@ -158,7 +175,7 @@
       <div class="flex justify-center">
         <button
           id="btn-start-game"
-          class="px-10 py-4 bg-amber-500 hover:bg-amber-600 text-white text-3xl font-bold rounded-full shadow-lg border-b-4 border-amber-700 transform active:scale-95 transition-all"
+          class="px-8 py-3 sm:px-10 sm:py-4 bg-amber-500 hover:bg-amber-600 text-white text-2xl sm:text-3xl font-bold rounded-full shadow-lg border-b-4 border-amber-700 transform active:scale-95 transition-all"
         >
           เริ่มเกมเลย! 🎉
         </button>
@@ -172,17 +189,17 @@
     >
       <!-- ส่วนหัว (Header Stats) -->
       <div
-        class="w-full flex justify-between items-center bg-white/70 backdrop-blur-sm p-4 rounded-2xl border-2 border-white/50 shadow-md pointer-events-auto"
+        class="w-full flex justify-between items-center bg-white/45 backdrop-blur-md p-2 sm:p-4 rounded-2xl border border-white/40 shadow-lg pointer-events-auto gap-2"
       >
         <!-- ด่านและหลอดความคืบหน้า -->
-        <div class="flex flex-col w-1/3">
+        <div class="flex flex-col flex-1 max-w-[60%]">
           <div
-            class="flex justify-between text-sm md:text-base font-bold text-slate-700 mb-1"
+            class="flex justify-between text-[11px] sm:text-sm md:text-base font-bold text-slate-700 mb-1 gap-1"
           >
-            <span id="txt-progress">ข้อที่ 1/20</span>
-            <span id="txt-score">คะแนน: 0</span>
+            <span id="txt-progress" class="whitespace-nowrap">ข้อที่ 1/20</span>
+            <span id="txt-score" class="whitespace-nowrap">คะแนน: 0</span>
           </div>
-          <div class="w-full bg-slate-200 h-4 rounded-full overflow-hidden">
+          <div class="w-full bg-slate-200 h-2 sm:h-4 rounded-full overflow-hidden">
             <div
               id="bar-progress"
               class="bg-gradient-to-r from-emerald-400 to-emerald-600 h-full transition-all duration-300"
@@ -194,74 +211,91 @@
         <!-- ข้อความแจ้งเตือนสถานะการตรวจจับมือ -->
         <div
           id="hand-status"
-          class="text-amber-600 font-bold text-sm md:text-base animate-pulse bg-amber-100/80 px-3 py-1 rounded-full border border-amber-300"
+          class="text-amber-600 font-bold text-[10px] sm:text-xs md:text-sm lg:text-base animate-pulse bg-amber-100/80 px-2 py-1 rounded-full border border-amber-300 text-center truncate max-w-[40%]"
         >
-          ⚠️ กำลังหาตัวจับมือของคุณ... (หรือใช้เมาส์เล่นได้เลย)
+          ⚠️ กำลังหาตัวจับมือ...
         </div>
 
-        <!-- เวลาถอยหลัง -->
-        <div
-          class="flex items-center gap-2 bg-slate-100 px-4 py-2 rounded-xl border border-slate-300"
-        >
-          <span class="text-xl">⏰</span>
-          <span id="txt-timer" class="text-2xl font-black text-slate-800"
-            >03:00</span
+        <!-- ขวา: เวลาถอยหลังและปุ่มเต็มจอ -->
+        <div class="flex items-center gap-1.5 sm:gap-2">
+          <div
+            class="flex items-center gap-1 sm:gap-2 bg-slate-100 px-2 py-1 sm:px-4 sm:py-2 rounded-xl border border-slate-300"
           >
+            <span class="text-sm sm:text-xl">⏰</span>
+            <span id="txt-timer" class="text-sm sm:text-2xl font-black text-slate-800"
+              >03:00</span
+            >
+          </div>
+          <button
+            id="btn-fullscreen"
+            class="p-1.5 sm:p-2 bg-white hover:bg-slate-100 text-slate-700 rounded-xl border border-slate-300 transition-all hover:scale-105 active:scale-95 flex items-center justify-center shadow-sm"
+            title="เต็มจอ"
+          >
+            <svg class="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path class="fs-icon-path" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4h4M16 4h4v4M4 16v4h4M16 20h4v-4"></path>
+            </svg>
+          </button>
         </div>
       </div>
 
       <!-- พื้นที่เล่นเกม: ตะกร้าซ้าย-ขวา และจุดเกิดของการ์ดตรงกลาง -->
       <div
-        class="relative flex-1 w-full flex justify-between items-center px-4 md:px-12 my-4"
+        class="relative flex-1 w-full flex justify-between items-stretch px-2 sm:px-4 my-2 sm:my-4 gap-2 sm:gap-4"
       >
-        <!-- ตะกร้าสระ เ-ือ (ด้านซ้าย) -->
+        <!-- ตะกร้าสระ เ-ือ (ด้านซ้าย - โซนรับขนาดใหญ่แบบกระจกใส Glassmorphism) -->
         <div
           id="basket-uea"
-          class="basket-target pointer-events-auto w-40 h-48 md:w-56 md:h-64 bg-white/75 backdrop-blur-md border-4 border-sky-400 rounded-3xl shadow-xl flex flex-col items-center justify-between p-4 transform transition-all hover:scale-105 active:scale-95 duration-200"
+          class="basket-target pointer-events-auto w-[40%] bg-white/35 backdrop-blur-lg border-4 border-sky-400/60 rounded-3xl shadow-lg flex flex-col items-center justify-center p-2 sm:p-4 transform transition-all duration-200 hover:scale-[1.02]"
         >
-          <div class="text-5xl md:text-7xl">🧺</div>
+          <div class="text-5xl sm:text-7xl md:text-9xl mb-2 animate-bounce" style="animation-duration: 3s">🧺</div>
           <div
-            class="w-full bg-sky-500 text-white text-center py-2 rounded-xl text-xl md:text-3xl font-extrabold font-handwriting shadow-inner"
+            class="w-full max-w-[200px] bg-sky-500 text-white text-center py-1.5 sm:py-3 rounded-2xl text-sm sm:text-xl md:text-3xl font-extrabold font-handwriting shadow-md"
           >
             สระ เ-ือ
           </div>
+          <p class="text-[9px] sm:text-xs text-sky-600 mt-2 font-bold opacity-75 hidden xs:block">
+            👈 ลากมาปล่อยฝั่งซ้าย
+          </p>
         </div>
 
         <!-- การ์ดคำศัพท์ตรงกลาง (ลากได้) -->
         <div
           id="word-card"
-          class="pointer-events-auto absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 cursor-grab active:cursor-grabbing transform transition-transform duration-100"
+          class="pointer-events-auto fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 cursor-grab active:cursor-grabbing transform transition-transform duration-100"
         >
           <div
-            class="bg-gradient-to-br from-amber-300 to-amber-400 text-slate-900 border-4 border-white shadow-2xl rounded-2xl px-6 py-4 md:px-10 md:py-6 flex flex-col items-center justify-center gap-2 transition-all hover:shadow-amber-300/50 hover:shadow-2xl"
+            class="bg-gradient-to-br from-amber-300 to-amber-400 text-slate-900 border-4 border-white shadow-2xl rounded-2xl px-6 py-4 sm:px-10 sm:py-6 md:px-14 md:py-8 flex flex-col items-center justify-center gap-2 transition-all hover:shadow-amber-300/50 hover:shadow-2xl min-w-[140px] sm:min-w-[220px] md:min-w-[300px]"
           >
-            <span id="word-emoji" class="text-5xl md:text-6xl">🍆</span>
+            <span id="word-emoji" class="text-5xl sm:text-6xl md:text-7xl">🍆</span>
             <span
               id="word-text"
-              class="text-3xl md:text-4xl font-extrabold tracking-wide font-handwriting drop-shadow-sm"
+              class="text-2xl sm:text-3xl md:text-5xl font-extrabold tracking-wide font-handwriting drop-shadow-sm whitespace-nowrap"
               >มะเขือ</span
             >
           </div>
         </div>
 
-        <!-- ตะกร้าสระ เ-ีย (ด้านขวา) -->
+        <!-- ตะกร้าสระ เ-ีย (ด้านขวา - โซนรับขนาดใหญ่แบบกระจกใส Glassmorphism) -->
         <div
           id="basket-ia"
-          class="basket-target pointer-events-auto w-40 h-48 md:w-56 md:h-64 bg-white/75 backdrop-blur-md border-4 border-pink-400 rounded-3xl shadow-xl flex flex-col items-center justify-between p-4 transform transition-all hover:scale-105 active:scale-95 duration-200"
+          class="basket-target pointer-events-auto w-[40%] bg-white/35 backdrop-blur-lg border-4 border-pink-400/60 rounded-3xl shadow-lg flex flex-col items-center justify-center p-2 sm:p-4 transform transition-all duration-200 hover:scale-[1.02]"
         >
-          <div class="text-5xl md:text-7xl">🧺</div>
+          <div class="text-5xl sm:text-7xl md:text-9xl mb-2 animate-bounce" style="animation-duration: 3s">🧺</div>
           <div
-            class="w-full bg-pink-500 text-white text-center py-2 rounded-xl text-xl md:text-3xl font-extrabold font-handwriting shadow-inner"
+            class="w-full max-w-[200px] bg-pink-500 text-white text-center py-1.5 sm:py-3 rounded-2xl text-sm sm:text-xl md:text-3xl font-extrabold font-handwriting shadow-md"
           >
             สระ เ-ีย
           </div>
+          <p class="text-[9px] sm:text-xs text-pink-600 mt-2 font-bold opacity-75 hidden xs:block">
+            ลากมาปล่อยฝั่งขวา 👉
+          </p>
         </div>
       </div>
 
       <!-- แถบแจ้งเตือนฟีดแบ็กสระ -->
       <div
         id="feedback-banner"
-        class="w-full text-center py-2 text-2xl font-bold bg-white/90 rounded-xl shadow-md border-2 border-slate-200 opacity-0 transition-opacity duration-300"
+        class="w-full text-center py-1.5 sm:py-2 text-lg sm:text-2xl font-bold bg-white/45 backdrop-blur-md rounded-xl shadow-md border border-slate-200/60 opacity-0 transition-opacity duration-300 pointer-events-auto"
       >
         ยอดเยี่ยมมาก! ✨
       </div>
@@ -270,20 +304,20 @@
     <!-- 4. หน้าจอจบเกม (Game Over Screen) -->
     <div
       id="gameover-screen"
-      class="hidden z-10 max-w-lg w-11/12 p-8 bg-white/90 backdrop-blur-md rounded-3xl border-4 border-emerald-400 shadow-2xl text-center flex flex-col items-center"
+      class="hidden z-10 max-w-lg w-11/12 max-h-[90dvh] overflow-y-auto p-6 sm:p-8 bg-white/50 backdrop-blur-lg rounded-3xl border-4 border-emerald-400/65 shadow-2xl text-center flex flex-col items-center"
     >
-      <div class="text-8xl mb-4 animate-bounce">🏆</div>
+      <div class="text-6xl sm:text-8xl mb-2 sm:mb-4 animate-bounce">🏆</div>
       <h2
         id="go-title"
-        class="text-4xl font-extrabold text-emerald-600 mb-4 font-handwriting"
+        class="text-3xl sm:text-4xl font-extrabold text-emerald-600 mb-3 sm:mb-4 font-handwriting"
       >
         เก่งมากเด็ก ๆ !
       </h2>
 
-      <div class="space-y-3 text-slate-700 text-xl font-bold mb-8">
+      <div class="space-y-2 sm:space-y-3 text-slate-700 text-lg sm:text-xl font-bold mb-6 sm:mb-8">
         <p>
           คะแนนที่ทำได้:
-          <span id="go-score" class="text-3xl text-amber-500">0</span> / <span id="go-max-score">100</span>
+          <span id="go-score" class="text-2xl sm:text-3xl text-amber-500">0</span> / <span id="go-max-score">100</span>
         </p>
         <p>
           เวลาที่ใช้: <span id="go-time" class="text-sky-500">0</span> วินาที
@@ -296,7 +330,7 @@
 
       <button
         id="btn-restart"
-        class="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white text-2xl font-bold rounded-full shadow-lg border-b-4 border-emerald-700 transform active:scale-95 transition-all"
+        class="px-6 py-3 sm:px-8 sm:py-4 bg-emerald-500 hover:bg-emerald-600 text-white text-xl sm:text-2xl font-bold rounded-full shadow-lg border-b-4 border-emerald-700 transform active:scale-95 transition-all"
       >
         เล่นใหม่อีกครั้ง 🔄
       </button>
@@ -324,7 +358,7 @@
         { id: 16, text: "เรือดำน้ำ", type: "uea", emoji: "🚢" },
         { id: 17, text: "เสื้อผ้า", type: "uea", emoji: "👕" },
         { id: 18, text: "เปียกน้ำ", type: "ia", emoji: "💦" },
-        { id: 19, text: "น่าเบื่อ", type: "ia", emoji: "😒" },
+        { id: 19, text: "น่าเบื่อ", type: "uea", emoji: "😒" },
         { id: 20, text: "สีเหลือง", type: "uea", emoji: "🟨" },
       ];
 
@@ -477,6 +511,8 @@
       const btnToInstructions = document.getElementById("btn-to-instructions");
       const btnStartGame = document.getElementById("btn-start-game");
       const btnRestart = document.getElementById("btn-restart");
+      const btnFullscreen = document.getElementById("btn-fullscreen");
+      const btnFullscreenStart = document.getElementById("btn-fullscreen-start");
 
       const txtProgress = document.getElementById("txt-progress");
       const txtScore = document.getElementById("txt-score");
@@ -555,6 +591,7 @@
         wordCard.style.transform = "translate(-50%, -50%) scale(1)";
         wordCard.classList.remove("shake-animation");
         activeDrag.isDragging = false;
+        clearBasketHighlights();
       }
 
       function updateUI() {
@@ -680,12 +717,14 @@
 
         wordCard.style.left = `${activeDrag.currentX}px`;
         wordCard.style.top = `${activeDrag.currentY}px`;
+        updateBasketHighlights(activeDrag.currentX, activeDrag.currentY);
       }
 
       function handleDragEnd() {
         if (!activeDrag.isDragging) return;
         activeDrag.isDragging = false;
         evaluateDropPosition(activeDrag.currentX, activeDrag.currentY);
+        clearBasketHighlights();
       }
 
       // ประเมินผลว่าจุดพิกัดการวางชนกับตะกร้าไหน
@@ -711,6 +750,47 @@
           // ลอยกลับที่เดิมหากปล่อยว่างเปล่า
           resetCardPosition();
         }
+      }
+
+      // ฟังก์ชันเพิ่มเอฟเฟกต์ไฮไลต์ตะกร้าแบบตอบสนอง (Responsive Visual Feedback)
+      function updateBasketHighlights(x, y) {
+        const bUeaRect = basketUea.getBoundingClientRect();
+        const bIaRect = basketIa.getBoundingClientRect();
+
+        // ตรวจสอบการซ้อนทับของตำแหน่งลากกับพื้นที่ฝั่งซ้าย (สระ เ-ือ)
+        if (
+          x >= bUeaRect.left &&
+          x <= bUeaRect.right &&
+          y >= bUeaRect.top &&
+          y <= bUeaRect.bottom
+        ) {
+          basketUea.classList.add("bg-sky-200/60", "scale-[1.03]", "border-sky-500");
+          basketUea.classList.remove("bg-white/35", "border-sky-400/60");
+        } else {
+          basketUea.classList.remove("bg-sky-200/60", "scale-[1.03]", "border-sky-500");
+          basketUea.classList.add("bg-white/35", "border-sky-400/60");
+        }
+
+        // ตรวจสอบการซ้อนทับของตำแหน่งลากกับพื้นที่ฝั่งขวา (สระ เ-ีย)
+        if (
+          x >= bIaRect.left &&
+          x <= bIaRect.right &&
+          y >= bIaRect.top &&
+          y <= bIaRect.bottom
+        ) {
+          basketIa.classList.add("bg-pink-200/60", "scale-[1.03]", "border-pink-500");
+          basketIa.classList.remove("bg-white/35", "border-pink-400/60");
+        } else {
+          basketIa.classList.remove("bg-pink-200/60", "scale-[1.03]", "border-pink-500");
+          basketIa.classList.add("bg-white/35", "border-pink-400/60");
+        }
+      }
+
+      function clearBasketHighlights() {
+        basketUea.classList.remove("bg-sky-200/60", "scale-[1.03]", "border-sky-500");
+        basketUea.classList.add("bg-white/35", "border-sky-400/60");
+        basketIa.classList.remove("bg-pink-200/60", "scale-[1.03]", "border-pink-500");
+        basketIa.classList.add("bg-white/35", "border-pink-400/60");
       }
 
       // Mouse Events
@@ -753,8 +833,8 @@
       hands.setOptions({
         maxNumHands: 1,
         modelComplexity: 1,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5,
+        minDetectionConfidence: 0.6,
+        minTrackingConfidence: 0.6,
       });
 
       hands.onResults(onHandResults);
@@ -763,11 +843,6 @@
       function onHandResults(results) {
         arCtx.save();
         arCtx.clearRect(0, 0, arCanvas.width, arCanvas.height);
-
-        // วาดรูปภาพจากกล้องลง Canvas
-        if (results.image) {
-          arCtx.drawImage(results.image, 0, 0, arCanvas.width, arCanvas.height);
-        }
 
         isHandDetected =
           results.multiHandLandmarks && results.multiHandLandmarks.length > 0;
@@ -784,51 +859,68 @@
           const cursorX = (1 - indexTip.x) * arCanvas.width;
           const cursorY = indexTip.y * arCanvas.height;
 
-          handCursor.x = cursorX;
-          handCursor.y = cursorY;
+          // เพิ่มความลื่นไหลด้วย Exponential Moving Average (EMA) เพื่อลดการกระตุกของตัวชี้
+          const smoothingFactor = 0.35;
+          if (handCursor.x === 0 && handCursor.y === 0) {
+            handCursor.x = cursorX;
+            handCursor.y = cursorY;
+          } else {
+            handCursor.x = handCursor.x + (cursorX - handCursor.x) * smoothingFactor;
+            handCursor.y = handCursor.y + (cursorY - handCursor.y) * smoothingFactor;
+          }
 
           // คำนวณระยะห่างเพื่อตรวจจับการจีบ (Pinch) ด้วยทฤษฎีพิทาโกรัส
           const dx = indexTip.x - thumbTip.x;
           const dy = indexTip.y - thumbTip.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
 
-          // หากระยะห่างข้อต่อน้อยกว่า 0.05 ถือว่ากำลัง "จีบ" นิ้ว
-          isPinching = distance < 0.05;
+          // คำนวณขนาดของมือ (Hand Scale) เพื่ออ้างอิงระยะห่างกล้องแบบไดนามิก ( wrist(0) ถึง middle finger MCP(9) )
+          const wrist = landmarks[0];
+          const middleMcp = landmarks[9];
+          const hdx = wrist.x - middleMcp.x;
+          const hdy = wrist.y - middleMcp.y;
+          const handSize = Math.sqrt(hdx * hdx + hdy * hdy) || 0.1; // ป้องกันหารด้วย 0
 
-          // ตรวจสอบ Hover ตะกร้าหรือการ์ดคำศัพท์เพื่อเปลี่ยนรูปทรง Cursor Feedback
+          // หารด้วยขนาดมือเพื่อปรับอัตราส่วนการจีบให้เท่ากันทุกระยะใกล้-ไกล
+          const relativePinchDistance = distance / handSize;
+          isPinching = relativePinchDistance < 0.24;
+
+          // ตรวจสอบ Hover ตะกร้าหรือการ์ดคำศัพท์เพื่อเปลี่ยนรูปทรง Cursor Feedback (ใช้พิกัดที่สมูทแล้ว)
           const rect = getCardRect();
           const isHoveringCard =
-            cursorX >= rect.left &&
-            cursorX <= rect.right &&
-            cursorY >= rect.top &&
-            cursorY <= rect.bottom;
+            handCursor.x >= rect.left &&
+            handCursor.x <= rect.right &&
+            handCursor.y >= rect.top &&
+            handCursor.y <= rect.bottom;
 
           if (isPinching) {
             if (!previousPinchState) {
               // เริ่มจีบครั้งแรก
               if (isHoveringCard && !activeDrag.isDragging) {
                 activeDrag.isDragging = true;
-                activeDrag.startX = cursorX - rect.left - rect.width / 2;
-                activeDrag.startY = cursorY - rect.top - rect.height / 2;
+                activeDrag.startX = handCursor.x - rect.left - rect.width / 2;
+                activeDrag.startY = handCursor.y - rect.top - rect.height / 2;
                 handCursor.state = "pinch";
               } else {
                 handCursor.state = "error"; // จีบวืด
               }
             }
 
-            // หากกำลังลาก ให้อัปเดตพิกัดตามนิ้ว
+            // หากกำลังลาก ให้อัปเดตพิกัดตามนิ้ว (ใช้พิกัดที่สมูทเพื่อความลื่นของภาพ)
             if (activeDrag.isDragging) {
-              activeDrag.currentX = cursorX - activeDrag.startX;
-              activeDrag.currentY = cursorY - activeDrag.startY;
+              activeDrag.currentX = handCursor.x - activeDrag.startX;
+              activeDrag.currentY = handCursor.y - activeDrag.startY;
               wordCard.style.left = `${activeDrag.currentX}px`;
               wordCard.style.top = `${activeDrag.currentY}px`;
               handCursor.state = "pinch";
+              updateBasketHighlights(activeDrag.currentX, activeDrag.currentY);
             }
           } else {
             if (previousPinchState && activeDrag.isDragging) {
               // ปล่อยนิ้วที่จีบออก
               activeDrag.isDragging = false;
               evaluateDropPosition(activeDrag.currentX, activeDrag.currentY);
+              clearBasketHighlights();
             }
 
             if (isHoveringCard) {
@@ -848,6 +940,7 @@
           if (activeDrag.isDragging) {
             activeDrag.isDragging = false;
             resetCardPosition();
+            clearBasketHighlights();
           }
           previousPinchState = false;
         }
@@ -976,12 +1069,24 @@
       }
 
       // เริ่มต้นเรียกใช้งานกล้องเว็บแคมผ่าน MediaPipe Camera API
+      let isProcessingFrame = false;
       const camera = new Camera(videoElement, {
         onFrame: async () => {
-          await hands.send({ image: videoElement });
+          if (isProcessingFrame) return; // ข้ามเฟรมหากเฟรมเดิมกำลังประมวลผลอยู่ เพื่อป้องกันการกระตุกสะสม (Frame Drop Prevention)
+          isProcessingFrame = true;
+          try {
+            await hands.send({ image: videoElement });
+          } catch (err) {
+            console.error("MediaPipe processing error:", err);
+          } finally {
+            isProcessingFrame = false;
+          }
         },
-        width: 640,
-        height: 480,
+        // width: 480,
+        // height: 360,
+        width: 1920,
+        height: 1080,
+        facingMode: "user",
       });
 
       camera.start().catch((err) => {
@@ -989,8 +1094,85 @@
           "ไม่พบกล้องเว็บแคมหรือสิทธิ์การใช้กล้องถูกปฏิเสธ: สามารถเล่นต่อผ่าน เมาส์/ทัช ได้",
           err,
         );
-        handStatus.innerHTML =
-          "🚫 กล้องไม่ทำงาน: กำลังเปิดระบบสัมผัสและเมาส์ให้หนู ๆ แทน";
+        handStatus.innerHTML = "🚫 ใช้สัมผัส/เมาส์แทนกล้อง";
+      });
+
+      // ==================== FULLSCREEN & WINDOW RESIZE LOGIC ====================
+      function isFullscreenSupported() {
+        return document.fullscreenEnabled || 
+               document.webkitFullscreenEnabled || 
+               document.mozFullScreenEnabled || 
+               document.msFullscreenEnabled;
+      }
+
+      function requestFS(elem) {
+        if (elem.requestFullscreen) {
+          elem.requestFullscreen();
+        } else if (elem.webkitRequestFullscreen) {
+          elem.webkitRequestFullscreen();
+        } else if (elem.mozRequestFullScreen) {
+          elem.mozRequestFullScreen();
+        } else if (elem.msRequestFullscreen) {
+          elem.msRequestFullscreen();
+        }
+      }
+
+      function exitFS() {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        } else if (document.mozCancelFullScreen) {
+          document.mozCancelFullScreen();
+        } else if (document.msExitFullscreen) {
+          document.msExitFullscreen();
+        }
+      }
+
+      function getFullscreenElement() {
+        return document.fullscreenElement || 
+               document.webkitFullscreenElement || 
+               document.mozFullScreenElement || 
+               document.msFullScreenElement;
+      }
+
+      function toggleFullscreen() {
+        if (!getFullscreenElement()) {
+          requestFS(document.documentElement);
+        } else {
+          exitFS();
+        }
+      }
+
+      if (isFullscreenSupported()) {
+        if (btnFullscreen) btnFullscreen.addEventListener("click", toggleFullscreen);
+        if (btnFullscreenStart) btnFullscreenStart.addEventListener("click", toggleFullscreen);
+      } else {
+        // ซ่อนปุ่มถ้าเบราว์เซอร์ไม่สนับสนุน Fullscreen (เช่น iPhone Safari)
+        if (btnFullscreen) btnFullscreen.classList.add("hidden");
+        if (btnFullscreenStart) btnFullscreenStart.classList.add("hidden");
+      }
+
+      function updateFullscreenIcons() {
+        const isFS = !!getFullscreenElement();
+        const iconPaths = document.querySelectorAll(".fs-icon-path");
+        iconPaths.forEach((path) => {
+          if (isFS) {
+            path.setAttribute("d", "M4 14h4v4m0-4L4 18m16-4h-4v4m0-4l4 4M4 10h4V6m0 4L4 6m16 4h-4V6m0 4l4-4");
+          } else {
+            path.setAttribute("d", "M4 8V4h4M16 4h4v4M4 16v4h4M16 20h4v-4");
+          }
+        });
+      }
+
+      const fsEvents = ["fullscreenchange", "webkitfullscreenchange", "mozfullscreenchange", "MSFullscreenChange"];
+      fsEvents.forEach(evt => document.addEventListener(evt, updateFullscreenIcons));
+
+      // จัดตำแหน่งการ์ดเมื่อย่อ/ขยายจอ หรือหมุนจอ
+      window.addEventListener("resize", () => {
+        if (!activeDrag.isDragging && isGamePlaying) {
+          resetCardPosition();
+        }
       });
     </script>
   </body>
