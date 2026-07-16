@@ -223,7 +223,7 @@
           >
             <span class="text-sm sm:text-xl">⏰</span>
             <span id="txt-timer" class="text-sm sm:text-2xl font-black text-slate-800"
-              >03:00</span
+              >10:00</span
             >
           </div>
           <button
@@ -364,7 +364,7 @@
 
       let currentRound = 0;
       let score = 0;
-      let timeLeft = 300; // 5 นาที (300 วินาที)
+      let timeLeft = 600; // 10 นาที (600 วินาที)
       let timerInterval = null;
       let isGamePlaying = false;
       let wordsList = []; // ลำดับคำศัพท์ที่ใช้เล่นในเซสชันปัจจุบัน
@@ -559,7 +559,7 @@
         wordsList = [...WORDS_DATABASE].sort(() => Math.random() - 0.5);
         currentRound = 0;
         score = 0;
-        timeLeft = 180;
+        timeLeft = 600;
         isGamePlaying = true;
 
         updateUI();
@@ -685,7 +685,7 @@
         }
 
         goScore.textContent = score;
-        goTime.textContent = 180 - timeLeft;
+        goTime.textContent = 600 - timeLeft;
       }
 
       // ==================== MOUSE & TOUCH FALLBACK CONTROLS ====================
